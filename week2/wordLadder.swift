@@ -10,48 +10,52 @@ func wordLadder(beginWord: String, endWord: String, wordDic: Set<String>) -> [St
         return differentLength == 1
     }
 
-    // [hit, hot, dot] -> [[hit, hot, dot, dog], [hit, hot, dot, lot]]
-    func step(ladder: [String], wordDic: Set<String>) -> [[String]] {
+    // (["hit", "hot", "dot"], Set(["log", "cog", "dog", "lot"]))
+    // -> [(["hit", "hot", "dot", "dog"], Set(["log", "cog", "lot"])),
+    //     (["hit", "hot", "dot", "lot"], Set(["log", "cog", "dog"]))]
+    func step(ladder: [String], wordDic: Set<String>) -> [([String], Set<String>)] {
         let lastWord = ladder.last!
         let ladders = wordDic.filter({
-            (word) -> Bool in
+            (word: String) -> Bool in
             // get words of simmilar to lastWord but not in ladder
             isSimmilarWord(lastWord, and:word) && !ladder.contains(word)
         }).map({
-            (word) -> [String] in
-            return ladder + [word]
+            (word) -> ([String], Set<String>) in
+            return (ladder + [word], wordDic.subtract([word]))
         })
         return ladders
     }
     
     /* for each time 'helper' function runs,
-        [[hit]]
-        [[hit, hot]]
-        [[hit, hot, dot],
-         [hit, hot, lot]]
-        [[hit, hot, dot, dog],
-         [hit, hot, dot, lot],
-         [hit, hot, lot, log],
-         [hit, hot, lot, dot]]
-        [[hit, hot, dot, dog, log],
-         [hit, hot, dot, dog, cog],
-         [hit, hot, dot, lot, log],
-         [hit, hot, lot, log, cog],
-         [hit, hot, lot, log, dog],
-         [hit, hot, lot, dot, dog]]
+        [(["hit", "hot"], Set(["log", "cog", "dog", "dot", "lot"]))]
+    
+        [(["hit", "hot", "dot"], Set(["log", "cog", "dog", "lot"])), 
+         (["hit", "hot", "lot"], Set(["log", "cog", "dog", "dot"]))]
+    
+        [(["hit", "hot", "dot", "dog"], Set(["log", "cog", "lot"])),
+         (["hit", "hot", "dot", "lot"], Set(["log", "cog", "dog"])), 
+         (["hit", "hot", "lot", "log"], Set(["cog", "dog", "dot"])), 
+         (["hit", "hot", "lot", "dot"], Set(["log", "cog", "dog"]))]
+    
+        [(["hit", "hot", "dot", "dog", "log"], Set(["cog", "lot"])), 
+         (["hit", "hot", "dot", "dog", "cog"], Set(["log", "lot"])), 
+         (["hit", "hot", "dot", "lot", "log"], Set(["cog", "dog"])), 
+         (["hit", "hot", "lot", "log", "cog"], Set(["dog", "dot"])), 
+         (["hit", "hot", "lot", "log", "dog"], Set(["cog", "dot"])), 
+         (["hit", "hot", "lot", "dot", "dog"], Set(["log", "cog"]))]
     */
-    func helper(ladders: [[String]]) -> [[String]] {
+    func helper(ladders: [([String], Set<String>)]) -> [([String], Set<String>)] {
         let next = ladders.map({
-            (ladder: [String]) -> [[String]] in
-            step(ladder, wordDic: dict)
+            (ladder) -> [([String], Set<String>)] in
+            step(ladder.0, wordDic: ladder.1)
         }).reduce([], combine: +)
         if next.count == 0 {
             // Failed
-            return [[]]
+            return [([],Set<String>())]
         }
         let possibleAnswer = next.filter({
-            (ladder: [String]) -> Bool in
-            ladder.last == endWord
+            (ladder: ([String], Set<String>)) -> Bool in
+            ladder.0.last == endWord
         })
         if possibleAnswer.count > 0 {
             // found answer
@@ -60,10 +64,10 @@ func wordLadder(beginWord: String, endWord: String, wordDic: Set<String>) -> [St
         return helper(next)
     }
     
-    let initialLadder = [beginWord]
+    let initialLadder = ([beginWord], dict)
     let result = helper([initialLadder])
     if result.count > 0 {
-        return result[0]
+        return result[0].0
     }
     return []
 }
